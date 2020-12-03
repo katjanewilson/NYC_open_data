@@ -30,8 +30,9 @@ table(X2013_2019_Attendance_Results_School$`Demographic Category`)
 Attendance_2017 <- X2013_2019_Attendance_Results_School %>%
   filter(Grade == 3) %>%
   filter(Year == '2017-18') %>%
-  rename('Percent_Attendance' = '% Attendance') %>%
-  select(DBN, `School Name`, Year, Percent_Attendance, `Demographic Category`, `Demographic Variable`)
+  rename('Percent_Attendance' = '% Attendance',
+         'Percent_Chronically_Absent' = '% Chronically Absent') %>%
+  select(DBN, `School Name`, Year, Percent_Attendance, `Demographic Category`, `Demographic Variable`, Percent_Chronically_Absent)
 Demographics_2017 <- X2018_2019_School_Demographic_Snapshot %>%
   filter(Year == '2017-18') %>%
   select(DBN, `School Name`, Year, `Total Enrollment`, `Grade 3`,'% Female', '% Male', '% Black', '% White', '% Students with Disabilities', '% Poverty', 'Economic Need Index')

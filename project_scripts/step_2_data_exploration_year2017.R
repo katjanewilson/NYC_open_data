@@ -94,7 +94,7 @@ third_grade_data %>%
 
 working_data <- third_grade_data %>%
   select(DBN, Percent_Attendance, Demographic.Variable, X..Poverty, borough,
-         self_contained_option, gifted_talented_option, X..Male, X..Black, Economic.Need.Index)
+         self_contained_option, gifted_talented_option, X..Male, X..Black, Economic.Need.Index, Percent_Chronically_Absent)
 
 ## for each borough
 ggplot(data = third_grade_data) +
@@ -122,7 +122,8 @@ ggplot(data = third_grade_data) +
 #percent attendance for those with a self-contained option
 #######
 working_data <- working_data %>%
-  filter(Percent_Attendance != 's')
+  filter(Percent_Attendance != 's') %>%
+  filter(Percent_Chronically_Absent != 's')
 working_data$Percent_Attendance <- as.numeric(working_data$Percent_Attendance)
 attendance_compare <- working_data %>%
   group_by(self_contained_option, Demographic.Variable) %>%
