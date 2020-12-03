@@ -94,7 +94,7 @@ third_grade_data %>%
 
 working_data <- third_grade_data %>%
   select(DBN, Percent_Attendance, Demographic.Variable, X..Poverty, borough,
-         self_contained_option, gifted_talented_option)
+         self_contained_option, gifted_talented_option, X..Male, X..Black, Economic.Need.Index)
 
 ## for each borough
 ggplot(data = third_grade_data) +
@@ -130,3 +130,4 @@ attendance_compare <- working_data %>%
 working_data %>%
   group_by(gifted_talented_option) %>%
   summarise(mean_attendance = mean(Percent_Attendance))
+write.csv(working_data, file = '/cloud/project/data/third_grade_data_cleaned.csv')
