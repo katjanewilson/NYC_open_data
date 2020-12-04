@@ -51,3 +51,12 @@ merged <- merge(Attendance_2017, Demographics_2017, by = 'DBN')
 merged <- merge(merged, ClassSize_2017_spread, by = 'DBN')
 third_grade_data_2017 <- merged
 write.csv(third_grade_data_2017, file = "/cloud/project/data/third_grade_data_2017.csv")
+
+
+
+sample <- X2017_2018_SCHOOL_LEVEL_CLASS_SIZE_REPORT %>%
+  filter(`Grade Level` == "3" | `Grade Level` ==  "K-8 SC") %>%
+  filter(DBN == "01M019" | DBN == "01M034" )
+sample2 <- Attendance_2017 %>%
+  filter(`Demographic Variable` == "SWD" | `Demographic Variable` ==  "Not SWD") %>%
+  filter(DBN == "01M019" | DBN == "01M034" )

@@ -4,14 +4,14 @@ library(readr)
 working_data <- read.csv('/cloud/project/data/third_grade_data_cleaned.csv')
 working_data <- working_data %>%
   filter(Demographic.Variable == "SWD")
-## is the average attendance score among SC different than
-## average attendance score among non SC
 
 
 working_data %>%
   group_by(self_contained_option) %>%
-  summarise(mean_attendance = mean(Percent_Attendance))
+  summarise(mean_attendance = mean(Percent_Attendance),
+            mean_chronic_absent = mean(Percent_Chronically_Absent))
 with(working_data, t.test(Percent_Attendance ~ self_contained_option))
+with(working_data, t.test(Percent_Chronically_Absent ~ self_contained_option))
 table(working_data$self_contained_option)
 ## the t test is statistically signifiant, but that
 # is done without any matching
