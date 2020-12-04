@@ -33,11 +33,13 @@ lapply(school_covariates, function(v) {
 ## issue with the matching, so what if we switch treatment and control
 working_data$new_outcome <- ifelse(working_data$self_contained_option == 1, 0, 1)
 library(MatchIt)
-school_nearest <- matchit(formula = new_outcome ~ X..Poverty, data = working_data,
+school_nearest <- matchit(formula = new_outcome ~ X..Poverty +
+                            X..Black + X..Male + Economic.Need.Index, data = working_data,
         method = "nearest",
         family = "binomial",
         caliper = 0.25)
 summary(school_nearest)
+table(working_data$new_outcome)
 plot(school_nearest)
 
 nearest_matched <- match.data(school_nearest)
