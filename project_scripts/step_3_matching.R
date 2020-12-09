@@ -42,7 +42,17 @@ summary(school_nearest)
 table(working_data$new_outcome)
 plot(school_nearest)
 
+#add the propensity scores
+working_data$ps <- school_nearest$distance
+
+
+#create the matched set
 nearest_matched <- match.data(school_nearest)
+
+
+
+
+
 #350 schools were matched
 dim(nearest_matched)
 
