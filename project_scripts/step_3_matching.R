@@ -40,16 +40,16 @@ lapply(school_covariates, function(v) {
 set.seed(1731)
 
 ## issue with the matching, so what if we switch treatment and control
-working_data$new_outcome <- ifelse(working_data$self_contained_option == 1, 0, 1)
-working_data$new_outcome_labelled <- ifelse(working_data$new_outcome == 1, "no SC", "SC")
+working_data$self_contained_binary <- ifelse(working_data$self_contained_option == 1, 0, 1)
+working_data$new_outcome_labelled <- ifelse(working_data$self_contained_binary == 1, "no SC", "SC")
 library(MatchIt)
-school_nearest <- matchit(formula = new_outcome ~ Economic.Need.Index +
+school_nearest <- matchit(formula = self_contained_binary ~ Economic.Need.Index +
                             X..Black + X..Male + X..Poverty, data = working_data,
         method = "nearest",
         family = "binomial",
         caliper = 0.25)
 summary(school_nearest)
-table(working_data$new_outcome)
+table(working_data$self_contained_binary)
 plot(school_nearest)
 
 
@@ -71,7 +71,7 @@ with(nearest_matched, t.test(Percent_Attendance ~self_contained_option))
 
 ### ## estimating treatment effects
 
-model <- lm(Percent_Attendance ~ self_contained_option, data = nearest_matched)
+model <- lm(Percent_Attendance ~ self_contained_binary, data = nearest_matched)
 summary(model)
 # if self contained is 1, you have it, you have lower attendance
 
@@ -97,22 +97,22 @@ working_data$stable.iptw <- ifelse(working_data$new_outcome_labelled == 'no SC',
                                   (mean(1-working_data$ps[working_data$new_outcome_labelled == 'SC'])/(1-working_data$ps)))
 summary(ecls_nomiss$stable.iptw)
 working_data_nomiss<- working_data %>%
-  select(Percent_Attendance, new_outcome, X..Poverty, X..Male, X..Black, Economic.Need.Index, ps, iptw, stable.iptw)
+  select(Percent_Attendance, self_contained_binary, X..Poverty, X..Male, X..Black, Economic.Need.Index, ps, iptw, stable.iptw,
+         self_contained_binary)
 #weighted data - create a weighted version of the data 
 working_data_weighted <- svydesign(ids = ~1, data = working_data_nomiss, weights = working_data_nomiss$iptw)
 #check the balance
-working_data_weighted$strata
-SC_iptw_table <- svyCreateTableOne(vars = school_covariates, strata = "new_outcome", data = working_data_weighted,
+SC_iptw_table <- svyCreateTableOne(vars = school_covariates, strata = "self_contained_binary", data = working_data_weighted,
                                 test = F)
 SC_iptw_table
 print(SC_iptw_table, smd=T)
-boxplot(working_data_nomiss$X..Black ~ working_data_nomiss$new_outcome)
+boxplot(working_data_nomiss$X..Black ~ working_data_nomiss$self_contained_binary)
 ### check the covariate distribution for all the weights
 
 for(i in 1:nrow(working_data_nomiss)){
-  working_data_nomiss$X..Black[i] <- ifelse(working_data_nomiss$new_outcome == 1,
-                                     (working_data_nomiss$X..Black[i]*(mean(working_data_nomiss$ps[working_data_nomiss$new_outcome==1])))/working_data_nomiss$ps[i],
-                                     (mean(1-(working_data_nomiss$ps[working_data_nomiss$new_outcome ==0]))*working_data_nomiss$X..Black[i])/(1-working_data_nomiss$ps[i]))
+  working_data_nomiss$X..Black[i] <- ifelse(working_data_nomiss$self_contained_binary == 1,
+                                     (working_data_nomiss$X..Black[i]*(mean(working_data_nomiss$ps[working_data_nomiss$self_contained_binary==1])))/working_data_nomiss$ps[i],
+                                     (mean(1-(working_data_nomiss$ps[working_data_nomiss$self_contained_binary ==0]))*working_data_nomiss$X..Black[i])/(1-working_data_nomiss$ps[i]))
 }
 boxplot(working_data_nomiss$X..Black ~working_data_nomiss$new_outcome)
 
@@ -121,30 +121,31 @@ boxplot(working_data_nomiss$X..Black ~working_data_nomiss$new_outcome)
 ipwplot(working_data_nomiss$ps, logscale = F,
         main = "propensity scores")
 #lastly, test if distributions of covaraites are similar/diffeernt before or after weighting
-ks.test(working_data_nomiss$X..Black[working_data_nomiss$new_outcome == 1],
-        working_data_nomiss$X..Black[working_data_nomiss$new_outcome == 0])
+ks.test(working_data_nomiss$X..Black[working_data_nomiss$self_contained_binary == 1],
+        working_data_nomiss$X..Black[working_data_nomiss$self_contained_binary == 0])
 
 #estimate the ate
-mod_out_iptw <- lm(Percent_Attendance ~ new_outcome, weights = working_data_nomiss$iptw, 
+mod_out_iptw <- lm(Percent_Attendance ~ self_contained_binary, weights = working_data_nomiss$iptw, 
                    data = working_data_nomiss)
 summary(mod_out_iptw)
 ## still signifiant
+table(working_data_nomiss$self_contained_binary)
 
 
 ### 
 ##PART 3: Subclassification
 ###
 
-mod2 <- matchit(formula = new_outcome ~ Economic.Need.Index +
+mod2 <- matchit(formula = self_contained_binary ~ Economic.Need.Index +
                             X..Black + X..Male + X..Poverty, data = working_data_nomiss,
                           method = "subclass", subclass = 5)
 wd_nomiss2 <- data.frame(cbind(working_data_nomiss, match.data(mod2)[,c("distance", "subclass")]))                
 head(wd_nomiss2)
 ## so, all students in subclass 3 have similar propensity scores, etc.
 
-dat <- wd_nomiss2[,c("distance", "new_outcome", "subclass")]
-dat$Observations <- rep("NoSC", length(wd_nomiss2$new_outcome))
-dat$Observations[dat$new_outcome == 0] <- "SC"
+dat <- wd_nomiss2[,c("distance", "self_contained_binary", "subclass")]
+dat$Observations <- rep("NoSC", length(wd_nomiss2$self_contained_binary))
+dat$Observations[dat$self_contained_binary == 0] <- "SC"
 dat$ymax <- 1
 quant <- quantile(wd_nomiss2$distance, probs = seq(0,1,1/5))
 q <- data.frame(id = names(quant), values = unname(quant), stringsAsFactors = FALSE)
@@ -159,6 +160,6 @@ pp + geom_density(aes(x = distance, linetype = Observations), size = 0.75, data 
 
 ##estimate the ATE
 
-mod_out_sub <- lm(Percent_Attendance ~ new_outcome +factor(subclass) + factor(subclass) *new_outcome -1, 
+mod_out_sub <- lm(Percent_Attendance ~ self_contained_binary +factor(subclass) + factor(subclass) *self_contained_binary -1, 
                   data = wd_nomiss2)
 summary(mod_out_sub)
