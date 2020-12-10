@@ -28,13 +28,14 @@ lapply(school_covariates, function(v) {
   t.test(working_data[, v] ~ working_data[ ,'self_contained_option'])
 })
 
-# do a simple match for this
+# set seed
+set.seed(1731)
 
 ## issue with the matching, so what if we switch treatment and control
 working_data$new_outcome <- ifelse(working_data$self_contained_option == 1, 0, 1)
 library(MatchIt)
-school_nearest <- matchit(formula = new_outcome ~ X..Poverty +
-                            X..Black + X..Male + Economic.Need.Index, data = working_data,
+school_nearest <- matchit(formula = new_outcome ~ Economic.Need.Index +
+                            X..Black + X..Male + X..Poverty, data = working_data,
         method = "nearest",
         family = "binomial",
         caliper = 0.25)
@@ -42,16 +43,13 @@ summary(school_nearest)
 table(working_data$new_outcome)
 plot(school_nearest)
 
+
 #add the propensity scores
 working_data$ps <- school_nearest$distance
 
 
 #create the matched set
 nearest_matched <- match.data(school_nearest)
-
-
-
-
 
 #350 schools were matched
 dim(nearest_matched)
@@ -66,25 +64,16 @@ nearest_matched %>%
 ## also can conduct a t test to assess the matches
 with(nearest_matched, t.test(Percent_Attendance ~self_contained_option))
 
-###### MAHAL
-
-## add mahalanobis matching here
-
-########
-
-
-### PROPENSITY SCORE
-
-
-## add propensity score here
-
-
-
 ### ## estimating treatment effects
 
 model <- lm(Percent_Attendance ~ self_contained_option, data = nearest_matched)
 summary(model)
 # if self contained is 1, you have it, you have lower attendance
 
-### subclassification - add that here
+### Subclassification
+
+
+## IPTW
+
+
 
