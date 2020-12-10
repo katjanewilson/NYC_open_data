@@ -1,6 +1,8 @@
 ## causal
 ## import ecsl
 library(readr)
+ecls <- read_csv("/cloud/project/raw/ecls.csv")
+View(ecls)
 ecls <- read_csv("raw/ecls.csv")
 View(ecls)
 View(ecls)
@@ -33,6 +35,7 @@ lapply(ecls_cov, function(v){
 })
 
 
+table(ecls$catholic)
 
 ### NEAREST NEIGHBOR MATCHING
 

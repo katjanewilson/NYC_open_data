@@ -1,6 +1,14 @@
-### small sample matching
+### 
+##PART 1 MATCHING with Propensity Score
+###
+
+
+##small sample matching
 
 library(readr)
+
+library(pacman)
+p_load(MatchIt, dplyr, survey, tableone, twang, ipw, ggplot2)
 working_data <- read.csv('/cloud/project/data/third_grade_data_cleaned.csv')
 working_data <- working_data %>%
   filter(Demographic.Variable == "SWD")
@@ -33,6 +41,7 @@ set.seed(1731)
 
 ## issue with the matching, so what if we switch treatment and control
 working_data$new_outcome <- ifelse(working_data$self_contained_option == 1, 0, 1)
+working_data$new_outcome_labelled <- ifelse(working_data$new_outcome == 1, "no SC", "SC")
 library(MatchIt)
 school_nearest <- matchit(formula = new_outcome ~ Economic.Need.Index +
                             X..Black + X..Male + X..Poverty, data = working_data,
@@ -42,10 +51,6 @@ school_nearest <- matchit(formula = new_outcome ~ Economic.Need.Index +
 summary(school_nearest)
 table(working_data$new_outcome)
 plot(school_nearest)
-
-
-#add the propensity scores
-working_data$ps <- school_nearest$distance
 
 
 #create the matched set
@@ -70,10 +75,90 @@ model <- lm(Percent_Attendance ~ self_contained_option, data = nearest_matched)
 summary(model)
 # if self contained is 1, you have it, you have lower attendance
 
-### Subclassification
+
+
+
+### 
+##PART 2 IPTW Weighting
+###
+
 
 
 ## IPTW
+#add the propensity scores
+working_data$ps <- school_nearest$distance
+#estimate the effect of SC option using IPTW
+#create IPTW weights - 0 is no SC, which is the treatment
+working_data$iptw <- ifelse(working_data$new_outcome_labelled == 'no SC', 1/(working_data$ps),
+                           1/(1-working_data$ps))
+#stabilized weights
+working_data$stable.iptw <- ifelse(working_data$new_outcome_labelled == 'no SC',
+                                  (mean(working_data$ps[working_data$new_outcome_labelled == 'no SC'])/working_data$ps),
+                                  (mean(1-working_data$ps[working_data$new_outcome_labelled == 'SC'])/(1-working_data$ps)))
+summary(ecls_nomiss$stable.iptw)
+working_data_nomiss<- working_data %>%
+  select(Percent_Attendance, new_outcome, X..Poverty, X..Male, X..Black, Economic.Need.Index, ps, iptw, stable.iptw)
+#weighted data - create a weighted version of the data 
+working_data_weighted <- svydesign(ids = ~1, data = working_data_nomiss, weights = working_data_nomiss$iptw)
+#check the balance
+working_data_weighted$strata
+SC_iptw_table <- svyCreateTableOne(vars = school_covariates, strata = "new_outcome", data = working_data_weighted,
+                                test = F)
+SC_iptw_table
+print(SC_iptw_table, smd=T)
+boxplot(working_data_nomiss$X..Black ~ working_data_nomiss$new_outcome)
+### check the covariate distribution for all the weights
+
+for(i in 1:nrow(working_data_nomiss)){
+  working_data_nomiss$X..Black[i] <- ifelse(working_data_nomiss$new_outcome == 1,
+                                     (working_data_nomiss$X..Black[i]*(mean(working_data_nomiss$ps[working_data_nomiss$new_outcome==1])))/working_data_nomiss$ps[i],
+                                     (mean(1-(working_data_nomiss$ps[working_data_nomiss$new_outcome ==0]))*working_data_nomiss$X..Black[i])/(1-working_data_nomiss$ps[i]))
+}
+boxplot(working_data_nomiss$X..Black ~working_data_nomiss$new_outcome)
 
 
+# plot the weights
+ipwplot(working_data_nomiss$ps, logscale = F,
+        main = "propensity scores")
+#lastly, test if distributions of covaraites are similar/diffeernt before or after weighting
+ks.test(working_data_nomiss$X..Black[working_data_nomiss$new_outcome == 1],
+        working_data_nomiss$X..Black[working_data_nomiss$new_outcome == 0])
 
+#estimate the ate
+mod_out_iptw <- lm(Percent_Attendance ~ new_outcome, weights = working_data_nomiss$iptw, 
+                   data = working_data_nomiss)
+summary(mod_out_iptw)
+## still signifiant
+
+
+### 
+##PART 3: Subclassification
+###
+
+mod2 <- matchit(formula = new_outcome ~ Economic.Need.Index +
+                            X..Black + X..Male + X..Poverty, data = working_data_nomiss,
+                          method = "subclass", subclass = 5)
+wd_nomiss2 <- data.frame(cbind(working_data_nomiss, match.data(mod2)[,c("distance", "subclass")]))                
+head(wd_nomiss2)
+## so, all students in subclass 3 have similar propensity scores, etc.
+
+dat <- wd_nomiss2[,c("distance", "new_outcome", "subclass")]
+dat$Observations <- rep("NoSC", length(wd_nomiss2$new_outcome))
+dat$Observations[dat$new_outcome == 0] <- "SC"
+dat$ymax <- 1
+quant <- quantile(wd_nomiss2$distance, probs = seq(0,1,1/5))
+q <- data.frame(id = names(quant), values = unname(quant), stringsAsFactors = FALSE)
+pp <- ggplot(data = dat, aes(x = distance, group = Observations))
+pp + geom_density(aes(x = distance, linetype = Observations), size = 0.75, data = dat)+
+  xlab("Propensity Score Logit") +
+  ylab("Density") +
+  geom_vline(xintercept = quant[(2:5)], linetype = "dashed") +
+  theme_bw() +
+  theme(legend.position = "bottom")
+
+
+##estimate the ATE
+
+mod_out_sub <- lm(Percent_Attendance ~ new_outcome +factor(subclass) + factor(subclass) *new_outcome -1, 
+                  data = wd_nomiss2)
+summary(mod_out_sub)
