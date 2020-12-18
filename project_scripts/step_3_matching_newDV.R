@@ -45,9 +45,9 @@ working_data$new_outcome_labelled <- ifelse(working_data$treatment_indicator == 
 library(MatchIt)
 school_nearest <- matchit(formula = treatment_indicator ~ Economic.Need.Index +
                             X..Black + X..Male + X..Poverty, data = working_data,
-        method = "nearest",
-        family = "binomial",
-        caliper = 0.25)
+                          method = "nearest",
+                          family = "binomial",
+                          caliper = 0.25)
 summary(school_nearest)
 table(working_data$treatment_indicator)
 plot(school_nearest)
@@ -67,14 +67,18 @@ nearest_matched %>%
   summarise_all(funs(mean))
 
 ## also can conduct a t test to assess the matches
-with(nearest_matched, t.test(Percent_Attendance ~self_contained_option))
+with(nearest_matched, t.test(Percent_Chronically_Absent ~self_contained_option))
 
 ### ## estimating treatment effects
 
-model <- lm(Percent_Attendance ~ treatment_indicator, data = nearest_matched)
+model <- lm(Percent_Chronically_Absent ~ treatment_indicator, data = nearest_matched)
 summary(model)
 table(nearest_matched$treatment_indicator)
 # if self contained is 1 (treatment), you have it, you have higher attenance
+
+
+
+
 
 
 
@@ -91,20 +95,20 @@ working_data$ps <- school_nearest$distance
 #estimate the effect of SC option using IPTW
 #create IPTW weights - 0 is no SC, which is the treatment
 working_data$iptw <- ifelse(working_data$new_outcome_labelled == 'no SC', 1/(working_data$ps),
-                           1/(1-working_data$ps))
+                            1/(1-working_data$ps))
 #stabilized weights
 working_data$stable.iptw <- ifelse(working_data$new_outcome_labelled == 'no SC',
-                                  (mean(working_data$ps[working_data$new_outcome_labelled == 'no SC'])/working_data$ps),
-                                  (mean(1-working_data$ps[working_data$new_outcome_labelled == 'SC'])/(1-working_data$ps)))
+                                   (mean(working_data$ps[working_data$new_outcome_labelled == 'no SC'])/working_data$ps),
+                                   (mean(1-working_data$ps[working_data$new_outcome_labelled == 'SC'])/(1-working_data$ps)))
 summary(ecls_nomiss$stable.iptw)
 working_data_nomiss<- working_data %>%
-  select(Percent_Attendance, treatment_indicator, X..Poverty, X..Male, X..Black, Economic.Need.Index, ps, iptw, stable.iptw,
+  select(Percent_Chronically_Absent, treatment_indicator, X..Poverty, X..Male, X..Black, Economic.Need.Index, ps, iptw, stable.iptw,
          treatment_indicator)
 #weighted data - create a weighted version of the data 
 working_data_weighted <- svydesign(ids = ~1, data = working_data_nomiss, weights = working_data_nomiss$iptw)
 #check the balance
 SC_iptw_table <- svyCreateTableOne(vars = school_covariates, strata = "treatment_indicator", data = working_data_weighted,
-                                test = F)
+                                   test = F)
 SC_iptw_table
 print(SC_iptw_table, smd=T)
 boxplot(working_data_nomiss$X..Black ~ working_data_nomiss$treatment_indicator)
@@ -112,8 +116,8 @@ boxplot(working_data_nomiss$X..Black ~ working_data_nomiss$treatment_indicator)
 
 for(i in 1:nrow(working_data_nomiss)){
   working_data_nomiss$X..Black[i] <- ifelse(working_data_nomiss$treatment_indicator == 1,
-                                     (working_data_nomiss$X..Black[i]*(mean(working_data_nomiss$ps[working_data_nomiss$treatment_indicator==1])))/working_data_nomiss$ps[i],
-                                     (mean(1-(working_data_nomiss$ps[working_data_nomiss$treatment_indicator ==0]))*working_data_nomiss$X..Black[i])/(1-working_data_nomiss$ps[i]))
+                                            (working_data_nomiss$X..Black[i]*(mean(working_data_nomiss$ps[working_data_nomiss$treatment_indicator==1])))/working_data_nomiss$ps[i],
+                                            (mean(1-(working_data_nomiss$ps[working_data_nomiss$treatment_indicator ==0]))*working_data_nomiss$X..Black[i])/(1-working_data_nomiss$ps[i]))
 }
 boxplot(working_data_nomiss$X..Black ~working_data_nomiss$new_outcome)
 
@@ -126,11 +130,16 @@ ks.test(working_data_nomiss$X..Black[working_data_nomiss$treatment_indicator == 
         working_data_nomiss$X..Black[working_data_nomiss$treatment_indicator == 0])
 
 #estimate the ate
-mod_out_iptw <- lm(Percent_Attendance ~ treatment_indicator, weights = working_data_nomiss$iptw, 
+mod_out_iptw <- lm(Percent_Chronically_Absent ~ treatment_indicator, weights = working_data_nomiss$iptw, 
                    data = working_data_nomiss)
 summary(mod_out_iptw)
 ## still signifiant
 table(working_data_nomiss$treatment_indicatory)
+
+
+
+
+
 
 
 ### 
@@ -138,8 +147,8 @@ table(working_data_nomiss$treatment_indicatory)
 ###
 
 mod2 <- matchit(formula = treatment_indicator ~ Economic.Need.Index +
-                            X..Black + X..Male + X..Poverty, data = working_data_nomiss,
-                          method = "subclass", subclass = 4)
+                  X..Black + X..Male + X..Poverty, data = working_data_nomiss,
+                method = "subclass", subclass = 5)
 wd_nomiss2 <- data.frame(cbind(working_data_nomiss, match.data(mod2)[,c("distance", "subclass")]))                
 head(wd_nomiss2)
 
@@ -170,6 +179,7 @@ pp + geom_density(aes(x = distance, linetype = Observations), size = 0.75, data 
 
 ##estimate the ATE
 
-mod_out_sub <- lm(Percent_Attendance ~ treatment_indicator +factor(subclass) + factor(subclass) *treatment_indicator -1, 
+mod_out_sub <- lm(Percent_Chronically_Absent ~ treatment_indicator +factor(subclass) + factor(subclass) *treatment_indicator -1, 
                   data = wd_nomiss2)
 summary(mod_out_sub)
+
