@@ -2,7 +2,7 @@
 install.packages("pacman")
 library(pacman)
 p_load(MatchIt, dplyr, survey, tableone, twang, ipw, ggplot2)
-ecls<- read.csv("raw/ecls.csv")
+ecls <- read_csv("/cloud/project/raw/ecls.csv")
 
 ecls_cov <- c("race_white", "p5hmage", "w3income", "p5numpla",
               "w3momed_hsb")

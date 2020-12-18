@@ -138,9 +138,18 @@ table(working_data_nomiss$self_contained_binary)
 
 mod2 <- matchit(formula = self_contained_binary ~ Economic.Need.Index +
                             X..Black + X..Male + X..Poverty, data = working_data_nomiss,
-                          method = "subclass", subclass = 5)
+                          method = "subclass", subclass = 4)
 wd_nomiss2 <- data.frame(cbind(working_data_nomiss, match.data(mod2)[,c("distance", "subclass")]))                
 head(wd_nomiss2)
+
+## check out subclasses
+wd_nomiss2$subclass <- as.factor(wd_nomiss2$subclass)
+wd_nomiss2$X..Poverty <- as.factor(wd_nomiss2$X..Poverty)
+wd_nomiss2 %>%
+  group_by(subclass) %>%
+  summarise(mean_ps = mean(ps),
+            mean_economic_need = mean(Economic.Need.Index),
+            mean_black = mean(X..Black))
 ## so, all students in subclass 3 have similar propensity scores, etc.
 
 dat <- wd_nomiss2[,c("distance", "self_contained_binary", "subclass")]
