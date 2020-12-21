@@ -88,12 +88,42 @@ model <- lm(Percent_Attendance ~ treatment_indicator, data = working_data)
 summary(model)
 
 
-###PART 1.2 Nearest Neighbor Matching chnging the K
-
-
-###PART 1.3 Mahalanobis Matching
-
-
+###PART 1.2 Mahalanobis or FULL Matching
+# 
+# 
+# school_nearest <- matchit(formula = treatment_indicator ~ Economic.Need.Index +
+#                             X..Black + X..Male + X..Poverty + X..Female + X..White #+ Total.Enrollment
+#                           + X..Students.with.Disabilities
+#                           , data = working_data,
+#                           method = "full")
+# summary(school_nearest)
+# table(working_data$treatment_indicator)
+# plot(school_nearest)
+# 
+# 
+# #create the matched set
+# nearest_matched <- match.data(school_nearest)
+# 
+# #350 schools were matched
+# dim(nearest_matched)
+# 
+# ## now look at the means of the covariates
+# #matching was successful because the poverty rates are around .72 now together
+# nearest_matched %>%
+#   group_by(self_contained_option) %>%
+#   select(X..Poverty) %>%
+#   summarise_all(funs(mean))
+# 
+# ## also can conduct a t test to assess the matches
+# with(nearest_matched, t.test(Percent_Attendance ~self_contained_option))
+# 
+# ### ## estimating treatment effects
+# 
+# model <- lm(Percent_Attendance ~ treatment_indicator, data = nearest_matched)
+# summary(model)
+# table(nearest_matched$treatment_indicator)
+# # if self contained is 1 (treatment), you have it, you have higher attenance
+# 
 
 
 
@@ -163,7 +193,7 @@ mod2 <- matchit(formula = treatment_indicator ~ Economic.Need.Index +
                 method = "subclass", subclass = 5)
 wd_nomiss2 <- data.frame(cbind(working_data_nomiss, match.data(mod2)[,c("distance", "subclass")]))                
 head(wd_nomiss2)
-
+table(working_data_nomiss$treatment_indicator)
 ## check out subclasses
 wd_nomiss2$subclass <- as.factor(wd_nomiss2$subclass)
 wd_nomiss2$X..Poverty <- as.factor(wd_nomiss2$X..Poverty)
@@ -171,7 +201,7 @@ wd_nomiss2 %>%
   group_by(subclass, treatment_indicator) %>%
   summarise(mean_ps = mean(ps),
             mean_economic_need = mean(Economic.Need.Index),
-            mean_black = mean(X..Black),
+            mean_white = mean(X..White),
             mean_disability = mean(X..Students.with.Disabilities))
 ## so, all students in subclass 3 have similar propensity scores, etc.
 table(wd_nomiss2$treatment_indicator)

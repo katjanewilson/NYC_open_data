@@ -25,7 +25,8 @@ table(working_data$self_contained_option)
 # is done without any matching
 
 # find the diffrences on the covariates
-school_covariates <- c('X..Poverty', 'X..Black', 'X..Male', 'Economic.Need.Index')
+school_covariates <- c('X..Poverty', 'X..Black', 'X..Male', 'Economic.Need.Index',
+                       'X..White', 'X..Female', 'Total.Enrollment', 'X..Students.with.Disabilities')
 working_data %>%
   group_by(self_contained_option) %>%
   select(one_of(school_covariates)) %>%
@@ -44,7 +45,8 @@ working_data$treatment_indicator <- ifelse(working_data$self_contained_option ==
 working_data$new_outcome_labelled <- ifelse(working_data$treatment_indicator == 1, "no SC", "SC")
 library(MatchIt)
 school_nearest <- matchit(formula = treatment_indicator ~ Economic.Need.Index +
-                            X..Black + X..Male + X..Poverty, data = working_data,
+                            X..Black + X..Male + X..Poverty +X..Female + X..White
+                          + X..Students.with.Disabilities, data = working_data,
                           method = "nearest",
                           family = "binomial",
                           caliper = 0.25)
@@ -102,7 +104,8 @@ working_data$stable.iptw <- ifelse(working_data$new_outcome_labelled == 'no SC',
                                    (mean(1-working_data$ps[working_data$new_outcome_labelled == 'SC'])/(1-working_data$ps)))
 summary(ecls_nomiss$stable.iptw)
 working_data_nomiss<- working_data %>%
-  select(Percent_Chronically_Absent, treatment_indicator, X..Poverty, X..Male, X..Black, Economic.Need.Index, ps, iptw, stable.iptw,
+  select(Percent_Chronically_Absent, treatment_indicator, X..Poverty, X..Male, X..Black, Economic.Need.Index,
+         X..Students.with.Disabilities, ps, iptw, stable.iptw,
          treatment_indicator)
 #weighted data - create a weighted version of the data 
 working_data_weighted <- svydesign(ids = ~1, data = working_data_nomiss, weights = working_data_nomiss$iptw)
@@ -147,8 +150,9 @@ table(working_data_nomiss$treatment_indicatory)
 ###
 
 mod2 <- matchit(formula = treatment_indicator ~ Economic.Need.Index +
-                  X..Black + X..Male + X..Poverty, data = working_data_nomiss,
-                method = "subclass", subclass = 5)
+                  X..Black + X..Male + X..Poverty + X..Students.with.Disabilities +
+                  X..Female + X..White, data = working_data_nomiss,
+                method = "subclass", subclass = 6)
 wd_nomiss2 <- data.frame(cbind(working_data_nomiss, match.data(mod2)[,c("distance", "subclass")]))                
 head(wd_nomiss2)
 
