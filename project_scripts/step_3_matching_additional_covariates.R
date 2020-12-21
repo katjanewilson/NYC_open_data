@@ -28,7 +28,7 @@ table(working_data$self_contained_option)
 
 # find the diffrences on the covariates
 school_covariates <- c('X..Poverty', 'X..Black', 'X..Male', 'Economic.Need.Index',
-                       'X..White', 'X..Female', 'Total.Enrollment')
+                       'X..White', 'X..Female', 'Total.Enrollment', 'X..Students.with.Disabilities')
 working_data %>%
   group_by(self_contained_option) %>%
   select(one_of(school_covariates)) %>%
@@ -50,6 +50,7 @@ library(MatchIt)
 
 school_nearest <- matchit(formula = treatment_indicator ~ Economic.Need.Index +
                             X..Black + X..Male + X..Poverty + X..Female + X..White #+ Total.Enrollment
+                          + X..Students.with.Disabilities
                           , data = working_data,
                           method = "nearest",
                           family = "binomial",
@@ -116,7 +117,7 @@ working_data$stable.iptw <- ifelse(working_data$new_outcome_labelled == 'no SC',
 summary(ecls_nomiss$stable.iptw)
 working_data_nomiss<- working_data %>%
   select(Percent_Attendance, treatment_indicator, X..Poverty, X..Male, X..Black,
-         Economic.Need.Index, X..Female, X..White, ps, iptw, stable.iptw,
+         Economic.Need.Index, X..Female, X..White, X..Students.with.Disabilities, ps, iptw, stable.iptw,
          treatment_indicator)
 #weighted data - create a weighted version of the data 
 working_data_weighted <- svydesign(ids = ~1, data = working_data_nomiss, weights = working_data_nomiss$iptw)
@@ -157,8 +158,9 @@ table(working_data_nomiss$treatment_indicatory)
 
 mod2 <- matchit(formula = treatment_indicator ~ Economic.Need.Index +
                    X..Black + X..Male + X..Poverty + X..White + X..Female #Total.Enrollment
+               + X..Students.with.Disabilities
                 , data = working_data_nomiss,
-                method = "subclass", subclass = 4)
+                method = "subclass", subclass = 5)
 wd_nomiss2 <- data.frame(cbind(working_data_nomiss, match.data(mod2)[,c("distance", "subclass")]))                
 head(wd_nomiss2)
 
@@ -169,7 +171,8 @@ wd_nomiss2 %>%
   group_by(subclass, treatment_indicator) %>%
   summarise(mean_ps = mean(ps),
             mean_economic_need = mean(Economic.Need.Index),
-            mean_black = mean(X..Black))
+            mean_black = mean(X..Black),
+            mean_disability = mean(X..Students.with.Disabilities))
 ## so, all students in subclass 3 have similar propensity scores, etc.
 table(wd_nomiss2$treatment_indicator)
 dat <- wd_nomiss2[,c("distance", "treatment_indicator", "subclass")]

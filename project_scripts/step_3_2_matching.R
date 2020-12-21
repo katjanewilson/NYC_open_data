@@ -27,4 +27,8 @@ ggplot(data = working_data_graph, aes(x = reorder(Demographic.Variable, -mean_ab
   theme_tufte() +
   geom_text(aes(label = round(mean_absent,2), vjust = -.3))
 
+working_data %>%
+  group_by(self_contained_option) %>%
+  summarise(mean = mean(X..Students.with.Disabilities))
+            
             
