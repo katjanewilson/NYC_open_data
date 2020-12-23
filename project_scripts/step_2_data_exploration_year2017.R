@@ -134,3 +134,4 @@ working_data %>%
   group_by(gifted_talented_option) %>%
   summarise(mean_attendance = mean(Percent_Attendance))
 write.csv(working_data, file = '/cloud/project/data/third_grade_data_cleaned.csv')
+
