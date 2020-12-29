@@ -17,8 +17,34 @@ Under construction
 
 Data sample
 
-```{undefined eval=FALSE, include=TRUE}
-#sample of identifying the self-contained class option
+```{r, eval=TRUE, include=TRUE}
+######
+# STEP 1
+#load 2017-2018 third grade data
+#######
+library(readr)
+library(tidyverse)
+setwd("/cloud/project/project_scripts")
+third_grade_data <- read.csv("../data/third_grade_data_2017.csv")
+
+#boroughs
+third_grade_data <- third_grade_data %>%
+  mutate(borough = case_when(str_detect(`DBN`, "X") ~"Bronx",
+                             str_detect(`DBN`, "Q") ~ "Queens",
+                             str_detect(`DBN`, "K") ~"Brooklyn",
+                             str_detect(`DBN`, "M") ~ "Manhattan",
+                             str_detect(`DBN`, "R") ~"Staten Island"))
+table(third_grade_data$borough)
+
+
+
+######
+# STEP 2
+#mutate into whether or not it has a self-contained option
+#######
+## check distinct
+#768 unique schools
+length(unique(third_grade_data$DBN))
 third_grade_data <- third_grade_data %>%
   mutate(GT = case_when(is.na(G.T) ~ 0),
          GenEd = case_when(is.na(Gen.Ed) ~ 0),
@@ -29,12 +55,108 @@ third_grade_data <- third_grade_data %>%
          SC_15.1 = case_when(is.na(SC.15.1) ~ 0),
          SC_6.1.1 = case_when(is.na(SC.6.1.1) ~ 0),
          SC_8.1.1 = case_when(is.na(SC.8.1.1) ~ 0))
+                        
+third_grade_data <- third_grade_data %>%
+  mutate(GT= ifelse(is.na(GT), 1, 0),
+         GenEd= ifelse(is.na(GenEd), 1, 0),
+         ICT_2= ifelse(is.na(ICT_2), 1, 0),
+         SC_12.1= ifelse(is.na(SC_12.1), 1, 0),
+         SC_12.1.1= ifelse(is.na(SC_12.1.1), 1, 0),
+         SC_15.1= ifelse(is.na(SC_15.1), 1, 0),
+         SC_6.1.1= ifelse(is.na(SC_6.1.1), 1, 0),
+         SC_8.1.1= ifelse(is.na(SC_8.1.1), 1, 0))
 
-#sample of identifying ICT and GT
+third_grade_data <- third_grade_data %>%
+  mutate(self_contained = ifelse(SC.12.1 == 1 | SC_12.1.1 == 1 |
+                                   SC.15.1 ==1 | SC_6.1.1 ==1 | SC_8.1.1==1 , 
+         1, 0))
+third_grade_data <- third_grade_data %>%
+  mutate(self_contained_option = ifelse(is.na(self_contained), 0, 1))
+third_grade_data <- third_grade_data %>%
+  mutate(gifted_talented_option = ifelse(GT == 1, 
+                                 1, 0))
+third_grade_data <- third_grade_data %>%
+  mutate(ICT_option = ifelse(ICT_2 == 1, 
+                                  1, 0))
 third_grade_data <- third_grade_data %>%
   mutate(self_contained_and_GT = ifelse(gifted_talented_option == 1 &
                                           self_contained_option == 1, 
                              1, 0))
+third_grade_data <- third_grade_data %>%
+  mutate(self_contained_and_GT_and_ICT = ifelse(gifted_talented_option == 1 &
+                                          self_contained_option == 1 &
+                                            ICT_option == 1, 
+                                        1, 0))
+third_grade_data <- third_grade_data %>%
+  mutate(only_gen_ed = ifelse(gifted_talented_option == 0 &
+                                                  self_contained_option == 0 &
+                                                  ICT_option == 0 &
+                                GenEd == 1, 
+                                                1, 0))
+write.csv(third_grade_data, '/cloud/project/data/third_grade_data_cleaned.csv')
+######
+# STEP 3
+#find numbers/sample size
+#######
+##527 schools have a self contained option, 221 don't
+third_grade_data %>%
+  group_by(self_contained_option) %>%
+  summarise(length(unique(DBN)))
+## only 84 schools have a GT option
+third_grade_data %>%
+  group_by(gifted_talented_option) %>%
+  summarise(length(unique(DBN)))
+## 696 have a GenEd option for third grade
+## the ones that don't have only ICT
+third_grade_data %>%
+  group_by(only_gen_ed) %>%
+  summarise(length(unique(DBN)))
+
+working_data <- third_grade_data %>%
+  select(DBN, Percent_Attendance, Demographic.Variable, X..Poverty, borough,
+         self_contained_option, gifted_talented_option, X..Male, X..Black,
+         X..Female, X..White, Total.Enrollment, Economic.Need.Index, Percent_Chronically_Absent,
+         X..Students.with.Disabilities)
+
+## for each borough
+ggplot(data = third_grade_data) +
+  geom_histogram(mapping = aes(x = Economic.Need.Index)) +
+  facet_wrap(~borough)
+ggplot(data = third_grade_data) +
+  geom_histogram(mapping = aes(x = X..Black)) +
+  facet_wrap(~borough)
+# for whether or not it has a self-contained option
+ggplot(data = third_grade_data) +
+  geom_histogram(mapping = aes(x = X..Black)) +
+  facet_wrap(~self_contained_option)
+ggplot(data = third_grade_data) +
+  geom_histogram(mapping = aes(x = X..Black)) +
+  facet_wrap(~gifted_talented_option)
+ggplot(data = third_grade_data) +
+  geom_histogram(mapping = aes(x = X..Poverty)) +
+  facet_wrap(~self_contained_option)
+ggplot(data = third_grade_data) +
+  geom_histogram(mapping = aes(x = X..Poverty)) +
+  facet_wrap(~gifted_talented_option)
+
+######
+# STEP 3
+#percent attendance for those with a self-contained option
+#######
+working_data <- working_data %>%
+  filter(Percent_Attendance != 's') %>%
+  filter(Percent_Chronically_Absent != 's')
+working_data$Percent_Attendance <- as.numeric(working_data$Percent_Attendance)
+attendance_compare <- working_data %>%
+  group_by(self_contained_option, Demographic.Variable) %>%
+  summarise(mean_attendance = mean(Percent_Attendance))
+working_data %>%
+  group_by(gifted_talented_option) %>%
+  summarise(mean_attendance = mean(Percent_Attendance))
+write.csv(working_data, file = '/cloud/project/data/third_grade_data_cleaned.csv')
+
+
+
 
 
 ```
@@ -127,12 +249,56 @@ It might seem backwards that the Treatment here is “no self-contained” optio
 
 
 ```{r, eval=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+### 
+##PART 1 MATCHING with Propensity Score
+###
+
+
+##small sample matching
+
+library(readr)
+
+library(pacman)
+p_load(MatchIt, dplyr, survey, tableone, twang, ipw, ggplot2)
+working_data <- read.csv('/cloud/project/data/third_grade_data_cleaned.csv')
+working_data <- working_data %>%
+  filter(Demographic.Variable == "SWD")
+
+
+working_data %>%
+  group_by(self_contained_option) %>%
+  summarise(mean_attendance = mean(Percent_Attendance),
+            mean_chronic_absent = mean(Percent_Chronically_Absent))
+with(working_data, t.test(Percent_Attendance ~ self_contained_option))
+with(working_data, t.test(Percent_Chronically_Absent ~ self_contained_option))
+table(working_data$self_contained_option)
+
+
+## the t test is statistically signifiant, but that
+# is done without any matching
+
+# find the diffrences on the covariates
+school_covariates <- c('X..Poverty', 'X..Black', 'X..Male', 'Economic.Need.Index',
+                       'X..White', 'X..Female', 'Total.Enrollment', 'X..Students.with.Disabilities')
+working_data %>%
+  group_by(self_contained_option) %>%
+  select(one_of(school_covariates)) %>%
+  summarise_all(funs(mean(., na.rm=T)))
+# do a t.test to find if there are statistically different differences
+
+
+lapply(school_covariates, function(v) {
+  t.test(working_data[, v] ~ working_data[ ,'self_contained_option'])
+})
+
 # set seed
 set.seed(1731)
+
 ## issue with the matching, so what if we switch treatment and control
 working_data$treatment_indicator <- ifelse(working_data$self_contained_option == 1, 0, 1)
 working_data$new_outcome_labelled <- ifelse(working_data$treatment_indicator == 1, "no SC", "SC")
 library(MatchIt)
+
 school_nearest <- matchit(formula = treatment_indicator ~ Economic.Need.Index +
                             X..Black + X..Male + X..Poverty + X..Female + X..White #+ Total.Enrollment
                           + X..Students.with.Disabilities
@@ -140,6 +306,10 @@ school_nearest <- matchit(formula = treatment_indicator ~ Economic.Need.Index +
                           method = "nearest",
                           family = "binomial",
                           caliper = 0.25)
+summary(school_nearest)
+table(working_data$treatment_indicator)
+plot(school_nearest)
+
 
 #create the matched set
 nearest_matched <- match.data(school_nearest)
@@ -167,6 +337,7 @@ table(nearest_matched$treatment_indicator)
 ##without matching
 model <- lm(Percent_Attendance ~ treatment_indicator, data = working_data)
 summary(model)
+
 ```
 
 
@@ -176,7 +347,9 @@ summary(model)
 
 To obtain an unbiased estimate of the ATE, we use IPTW weights to create a synthetic sample where treatment assignment is independent of the measured baseline covariate. Each subject's weight is equal to the inverse of the probability of receiving the treatment that the subject received. IPTW helps to create a weighted sample in which the distribution of covariates is the same between Treatment and Control subjects. IPTW allows us to obtain unbiased estimates of the ATE (Austin & Stuart 2015). The IPTW yields a small standardized mean differences (less than a standard deviation), in see Table X in Appendix, and using these weights in the outcome model, we arrive at a significant effect of the treatment, meaning that attendance is greater in schools with inclusion, controlling for all of the covariates of race, gender, and percent of students with special needs.
 
-```{r eval=FALSE, include=TRUE}
+```{r, eval=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+
+
 ## IPTW
 #add the propensity scores
 working_data$ps <- school_nearest$distance
@@ -188,7 +361,6 @@ working_data$iptw <- ifelse(working_data$new_outcome_labelled == 'no SC', 1/(wor
 working_data$stable.iptw <- ifelse(working_data$new_outcome_labelled == 'no SC',
                                    (mean(working_data$ps[working_data$new_outcome_labelled == 'no SC'])/working_data$ps),
                                    (mean(1-working_data$ps[working_data$new_outcome_labelled == 'SC'])/(1-working_data$ps)))
-summary(ecls_nomiss$stable.iptw)
 working_data_nomiss<- working_data %>%
   select(Percent_Attendance, treatment_indicator, X..Poverty, X..Male, X..Black,
          Economic.Need.Index, X..Female, X..White, X..Students.with.Disabilities, ps, iptw, stable.iptw,
@@ -208,7 +380,6 @@ for(i in 1:nrow(working_data_nomiss)){
                                             (working_data_nomiss$X..Black[i]*(mean(working_data_nomiss$ps[working_data_nomiss$treatment_indicator==1])))/working_data_nomiss$ps[i],
                                             (mean(1-(working_data_nomiss$ps[working_data_nomiss$treatment_indicator ==0]))*working_data_nomiss$X..Black[i])/(1-working_data_nomiss$ps[i]))
 }
-boxplot(working_data_nomiss$X..Black ~working_data_nomiss$new_outcome)
 # plot the weights
 ipwplot(working_data_nomiss$ps, logscale = F,
         main = "propensity scores")
@@ -218,6 +389,10 @@ ks.test(working_data_nomiss$X..Black[working_data_nomiss$treatment_indicator == 
 #estimate the ate
 mod_out_iptw <- lm(Percent_Attendance ~ treatment_indicator, weights = working_data_nomiss$iptw, 
                    data = working_data_nomiss)
+summary(mod_out_iptw)
+## still signifiant
+table(working_data_nomiss$treatment_indicatory)
+
 
 ```
 
@@ -225,8 +400,8 @@ mod_out_iptw <- lm(Percent_Attendance ~ treatment_indicator, weights = working_d
 ## Subclassification and Heterogeneous Treatment Effects
 
 To examine the heterogeneous effect of an SC option on attendance, I construct a propensity score stratum based on estimated propensity scores. Subclassification groups units into subclasses in which the distribution of covaraites are the same, and the propensity score is balanced. Five or six subclasses is the rule of thumb (Cochran 1968; Rosenbaum and Rubin 1984), but as n increases, more subclasses are better. Using 5 subclasses, we see that there is a signfiiant effect for Subclass 1, which is, the subclass with the highest proportion of Black students and highest Mean Economic Need. In other words, the effect of inclusion in increasing attendance is most strong for the neediest schools.
+```{r, eval=TRUE, message=FALSE, warning=FALSE, include=TRUE}
 
-```{r eval=FALSE, include=TRUE}
 mod2 <- matchit(formula = treatment_indicator ~ Economic.Need.Index +
                    X..Black + X..Male + X..Poverty + X..White + X..Female #Total.Enrollment
                + X..Students.with.Disabilities
@@ -259,10 +434,15 @@ pp + geom_density(aes(x = distance, linetype = Observations), size = 0.75, data 
   geom_vline(xintercept = quant[(2:5)], linetype = "dashed") +
   theme_bw() +
   theme(legend.position = "bottom")
+
+
 ##estimate the ATE
+
 mod_out_sub <- lm(Percent_Attendance ~ treatment_indicator +factor(subclass) + factor(subclass) *treatment_indicator -1, 
                   data = wd_nomiss2)
 summary(mod_out_sub)
+
+
 
 ```
 
