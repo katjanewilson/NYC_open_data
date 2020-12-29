@@ -9,15 +9,15 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Overview
 
-Under construction
+Project in Progress:
 
-## Takeaways
+Matched NYC schools on SC vs. no SC option
 
 ## Data
 
 Data sample
 
-```{r, eval=TRUE, include=TRUE}
+```{r eval=TRUE, message=FALSE, warning=FALSE, include=TRUE}
 ######
 # STEP 1
 #load 2017-2018 third grade data
@@ -252,12 +252,7 @@ It might seem backwards that the Treatment here is “no self-contained” optio
 ### 
 ##PART 1 MATCHING with Propensity Score
 ###
-
-
-##small sample matching
-
 library(readr)
-
 library(pacman)
 p_load(MatchIt, dplyr, survey, tableone, twang, ipw, ggplot2)
 working_data <- read.csv('/cloud/project/data/third_grade_data_cleaned.csv')
@@ -272,11 +267,8 @@ working_data %>%
 with(working_data, t.test(Percent_Attendance ~ self_contained_option))
 with(working_data, t.test(Percent_Chronically_Absent ~ self_contained_option))
 table(working_data$self_contained_option)
-
-
 ## the t test is statistically signifiant, but that
 # is done without any matching
-
 # find the diffrences on the covariates
 school_covariates <- c('X..Poverty', 'X..Black', 'X..Male', 'Economic.Need.Index',
                        'X..White', 'X..Female', 'Total.Enrollment', 'X..Students.with.Disabilities')
@@ -286,14 +278,11 @@ working_data %>%
   summarise_all(funs(mean(., na.rm=T)))
 # do a t.test to find if there are statistically different differences
 
-
 lapply(school_covariates, function(v) {
   t.test(working_data[, v] ~ working_data[ ,'self_contained_option'])
 })
-
 # set seed
 set.seed(1731)
-
 ## issue with the matching, so what if we switch treatment and control
 working_data$treatment_indicator <- ifelse(working_data$self_contained_option == 1, 0, 1)
 working_data$new_outcome_labelled <- ifelse(working_data$treatment_indicator == 1, "no SC", "SC")
@@ -327,14 +316,12 @@ nearest_matched %>%
 ## also can conduct a t test to assess the matches
 with(nearest_matched, t.test(Percent_Attendance ~self_contained_option))
 
-### ## estimating treatment effects
-
+### ## estimating treatment effects with matched data
 model <- lm(Percent_Attendance ~ treatment_indicator, data = nearest_matched)
 summary(model)
 table(nearest_matched$treatment_indicator)
-# if self contained is 1 (treatment), you have it, you have higher attenance
-
-##without matching
+# if self contained is 1 (treatment), you have SC option, you have higher attenance
+## treatment effects without matched data
 model <- lm(Percent_Attendance ~ treatment_indicator, data = working_data)
 summary(model)
 
@@ -389,11 +376,8 @@ ks.test(working_data_nomiss$X..Black[working_data_nomiss$treatment_indicator == 
 #estimate the ate
 mod_out_iptw <- lm(Percent_Attendance ~ treatment_indicator, weights = working_data_nomiss$iptw, 
                    data = working_data_nomiss)
+##sig ate here
 summary(mod_out_iptw)
-## still signifiant
-table(working_data_nomiss$treatment_indicatory)
-
-
 ```
 
 
