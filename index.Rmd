@@ -1,20 +1,30 @@
 ---
-title: "NYC Schools Matching"
-output: html_document
+title: ''
+output:
+  html_document:
+    toc: no
+    toc_float: yes
+    collapsed: no
+    number_sections: no
+    toc_depth: 4
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+## NYC Public Schools Matching {.tabset}
 
-## Overview
+### Overview
 
 Project in Progress:
 
 Matched NYC schools on SC vs. no SC option
 
-## Data
 
+A core principle of the Individuals with Disabilities in Education Act (IDEA) is that students with special needs are placed in the Least Restrictive Environment. The LRE is the environment where students with special needs are educated alongside their peers without special needs to the maximum extent possible. The Most Restrictive Environment within a general education school is a self-contained classroom, where all students have special needs. Opponents of self-contained classrooms promote “inclusion” models, where all students (regardless of disability status) are educated in the same classroom, and that various disability mandates are accomdated through support services. These opponents of segregated special education services argue that self-contained classrooms are a form of disability segregation, and that exclusion fosters lower standards for special education students. A less explored impact of inclusion/exclusion is how special education services affect the entire school culture. When students with disabilities learn alongside students without disabilities, all students in the school might feel a greater sense of belonging or connection with the school. In New York City, some public schools have a self-contained option for students with special needs, and other public schools do not have an option for a self-contained classroom. Matching schools on a variety of demographic covariates, I explore the effect of the self-contained class option on Attendance Rates.
+
+
+### Data
 Data sample
 
 ```{r eval=TRUE, message=FALSE, warning=FALSE, include=TRUE}
@@ -162,7 +172,7 @@ write.csv(working_data, file = '/cloud/project/data/third_grade_data_cleaned.csv
 ```
 
 
-## Associative Analysis
+### Associative Analysis
 
 
 Associative trends
@@ -204,7 +214,7 @@ working_data %>%
 ```
 
 
-## Differences in covariates
+Differences in covariates
 
 A Welch Two sample T. test confirms that there is a statistically significant difference in the rates of attendance and absenteeism. Attendance rates for the two groups differed significantly according to Welch’s t-test, t(394.4) = 6.84, p <.001. On average, schools with a self contained option have average attendance rates among SPED students of 91.4 %, and schools without a self contained option have average attendance rates among SPED students of 93.0%. A more alarming difference is the difference in chronic absenteeism rates, where the two groups again differed significantly according to Welch’s t-test, t-test, t(351.63) = -5.8884, p <.001. We are 95% confident that the difference between the Chronic Absenteeism rates between school types are from 11 to 5.5%.
 
@@ -239,7 +249,7 @@ working_data %>%
 
 ```
 
-## Matching
+### Matching
 
 P(X = 1|X) is the probability that the school does NOT have a SC option
 P(1): Probability of Treatment (no SC option)
@@ -330,7 +340,7 @@ summary(model)
 
 
 
-## IPTW
+### IPTW
 
 To obtain an unbiased estimate of the ATE, we use IPTW weights to create a synthetic sample where treatment assignment is independent of the measured baseline covariate. Each subject's weight is equal to the inverse of the probability of receiving the treatment that the subject received. IPTW helps to create a weighted sample in which the distribution of covariates is the same between Treatment and Control subjects. IPTW allows us to obtain unbiased estimates of the ATE (Austin & Stuart 2015). The IPTW yields a small standardized mean differences (less than a standard deviation), in see Table X in Appendix, and using these weights in the outcome model, we arrive at a significant effect of the treatment, meaning that attendance is greater in schools with inclusion, controlling for all of the covariates of race, gender, and percent of students with special needs.
 
@@ -381,7 +391,7 @@ summary(mod_out_iptw)
 ```
 
 
-## Subclassification and Heterogeneous Treatment Effects
+### Subclassification and Heterogeneous Treatment Effects
 
 To examine the heterogeneous effect of an SC option on attendance, I construct a propensity score stratum based on estimated propensity scores. Subclassification groups units into subclasses in which the distribution of covaraites are the same, and the propensity score is balanced. Five or six subclasses is the rule of thumb (Cochran 1968; Rosenbaum and Rubin 1984), but as n increases, more subclasses are better. Using 5 subclasses, we see that there is a signfiiant effect for Subclass 1, which is, the subclass with the highest proportion of Black students and highest Mean Economic Need. In other words, the effect of inclusion in increasing attendance is most strong for the neediest schools.
 ```{r, eval=TRUE, message=FALSE, warning=FALSE, include=TRUE}
