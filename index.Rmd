@@ -1,16 +1,18 @@
 ---
-title: ''
+title: ""
 output:
   html_document:
     toc: no
     toc_float: yes
     collapsed: no
     number_sections: no
-    toc_depth: 4
+    toc_depth: 3
+    css: front.css
   pdf_document:
     toc: yes
     toc_depth: '4'
 ---
+
 
 ## NYC Public Schools Matching {.tabset}
 
@@ -20,6 +22,7 @@ Project in Progress:
 
 Matched NYC schools on SC vs. no SC option
 
+Working Abstract:
 
 A core principle of the Individuals with Disabilities in Education Act (IDEA) is that students with special needs are placed in the Least Restrictive Environment. The LRE is the environment where students with special needs are educated alongside their peers without special needs to the maximum extent possible. The Most Restrictive Environment within a general education school is a self-contained classroom, where all students have special needs. Opponents of self-contained classrooms promote “inclusion” models, where all students (regardless of disability status) are educated in the same classroom, and that various disability mandates are accomdated through support services. These opponents of segregated special education services argue that self-contained classrooms are a form of disability segregation, and that exclusion fosters lower standards for special education students. A less explored impact of inclusion/exclusion is how special education services affect the entire school culture. When students with disabilities learn alongside students without disabilities, all students in the school might feel a greater sense of belonging or connection with the school. In New York City, some public schools have a self-contained option for students with special needs, and other public schools do not have an option for a self-contained classroom. Matching schools on a variety of demographic covariates, I explore the effect of the self-contained class option on Attendance Rates.
 
